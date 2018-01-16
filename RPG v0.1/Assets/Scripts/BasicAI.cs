@@ -4,24 +4,26 @@ using UnityEngine;
 [RequireComponent(typeof(Animator))]
 
 public class BasicAI : MonoBehaviour {
-    public Transform target;
 
-    Animator anim;
+    public Transform target;    
     public Transform[] waypoints;
     public Transform player;
     public Vector3[] path;
-    Vector3 currentTarget;
     public LayerMask ignoreHitMask;
-    RaycastHit hitInfo;
-    int targetIndex;
-    public bool hit;
-
     public string state = "patrol";
+
+
+
+    int targetIndex;
+    public bool hit;  
+    Animator anim;
+    Vector3 currentTarget;
+    RaycastHit hitInfo;
     int currentWP = 0;
     float rotSpeed = 1f;
-
-    
     float accuracyWP = 2.0f;
+
+
     // Use this for initialization
     void Start () {
         anim=GetComponent<Animator>();
@@ -121,7 +123,7 @@ public class BasicAI : MonoBehaviour {
 
                 PathRequestManager.RequestPath(transform.position, player.position, OnPathFound);
                direction = currentTarget - transform.position;
-               // direction = player.position - transform.position;
+              
                 transform.rotation = Quaternion.Slerp(transform.rotation,
                     Quaternion.LookRotation(direction), rotSpeed * Time.deltaTime);
 
@@ -142,7 +144,7 @@ public class BasicAI : MonoBehaviour {
 
             case "attack":
                 transform.rotation = Quaternion.Slerp(transform.rotation,
-                   Quaternion.LookRotation(player.transform.position), rotSpeed * Time.deltaTime);
+                   Quaternion.LookRotation(player.transform.position-transform.position), rotSpeed * Time.deltaTime);
                 anim.SetBool("Attack", true);
                 anim.SetBool("Chase", false);
                 anim.SetBool("Walk", false);

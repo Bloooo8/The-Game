@@ -5,22 +5,29 @@ using UnityEngine;
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Animator))]
 [RequireComponent(typeof(Rigidbody))]
-[RequireComponent(typeof(CapsuleCollider))]
+
 public class CharController : MonoBehaviour {
-    int direction = 1;
+   
     public float speed = 3;
-   // private bool ifAttack, prev_ifAttack;
-    private float arrow_rot;
+
+    public float moveSpeed;
+    bool acceleration = true;
+
+    RaycastHit hit;
+
+
 
     Animator anim;
     Camera cam;
-    Vector3 weapon_pos;
-    public GameObject weapon;
-    public GameObject HookRightHand;
-    public GameObject HookBack;
-    public GameObject arrow;
-    private Vector3 mousePosition, prmousePosition;
-    private float prx, pry, prz;
+    AimingCircle circle;
+
+
+    private void Start()
+    {
+        anim.SetBool("Armed", false);
+    }
+
+
 
 
     void Awake()
@@ -28,10 +35,13 @@ public class CharController : MonoBehaviour {
         
         anim = GetComponent<Animator>();
         cam = Camera.main;
-        arrow.SetActive(false);
-        prx = Input.mousePosition.x;
-        pry = Input.mousePosition.y;
-        prz = Input.mousePosition.z;
+        circle= gameObject.GetComponentInChildren<AimingCircle>();
+
+       
+       
+
+
+
 
 
     }
@@ -42,8 +52,13 @@ public class CharController : MonoBehaviour {
 
         ifArmed();
 
-       
+      
+
         
+
+        anim.SetFloat("Idle", GetComponentInChildren<AimingCircle>().choosePositionX);
+        anim.SetFloat("Attack_Vertical", GetComponentInChildren<AimingCircle>().choosePositionY);
+
         Quaternion targetRotation = Quaternion.LookRotation(
             new Vector3(transform.position.x - cam.transform.position.x,
             0, 
@@ -66,11 +81,11 @@ public class CharController : MonoBehaviour {
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, step);
         }
 
-        if(arrow.active)
+        if (GetComponentInChildren<AimingCircle>().ifVisible)
 
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, step);
 
-        if (!arrow.active)
+        if (!GetComponentInChildren<AimingCircle>().ifVisible)
         {
             if (anim.GetFloat("Forward") < 0 && cam.transform.rotation.y != transform.rotation.y)
             {
@@ -105,20 +120,96 @@ public class CharController : MonoBehaviour {
 
     }
 
+    private void LateUpdate()
+    {
+
+        // Adjusting feet position and rotation to ground 
+
+        /*if (Physics.Raycast(anim.GetBoneTransform(HumanBodyBones.LeftToes).position,
+           -anim.GetBoneTransform(HumanBodyBones.LeftToes).up, out hit, 0.2f))
+        {
+            anim.GetBoneTransform(HumanBodyBones.LeftToes).rotation =
+                Quaternion.FromToRotation(anim.GetBoneTransform(HumanBodyBones.LeftToes).up, hit.normal)
+                * anim.GetBoneTransform(HumanBodyBones.LeftToes).rotation;
+            anim.GetBoneTransform(HumanBodyBones.LeftToes).position = hit.point;
+
+        }
+
+        if (Physics.Raycast(anim.GetBoneTransform(HumanBodyBones.RightToes).position,
+          -anim.GetBoneTransform(HumanBodyBones.RightToes).up, out hit, 0.2f))
+        {
+            anim.GetBoneTransform(HumanBodyBones.RightToes).rotation =
+               Quaternion.FromToRotation(anim.GetBoneTransform(HumanBodyBones.RightToes).up, hit.normal)
+               * anim.GetBoneTransform(HumanBodyBones.RightToes).rotation;
+            anim.GetBoneTransform(HumanBodyBones.RightToes).position = hit.point;
+
+        }
+        */
+
+    }
+
     void Move()
     {
         float side, forward;
+       
         
         side = anim.GetFloat("Side");
         forward = anim.GetFloat("Forward");
+        
         
 
 
             anim.SetFloat("Forward", Input.GetAxis("Vertical"));
 
             anim.SetFloat("Side", Input.GetAxis("Horizontal"));
-     
-            anim.SetBool("Run", Input.GetKey(KeyCode.LeftShift));
+
+        if (Input.GetKey(KeyCode.LeftShift))
+
+            StartCoroutine(speedUp());
+
+        if (Input.GetKeyUp(KeyCode.LeftShift))
+
+            StartCoroutine(slowDown());
+
+        if (Input.GetMouseButton(1))   //right mouse button
+
+            anim.SetBool("Block", true);
+        else
+            anim.SetBool("Block", false);
+
+
+
+
+
+
+        if (Input.GetKey(KeyCode.Z))
+            switch (acceleration)
+            {
+                case true:
+                    moveSpeed += 0.05f;
+                    if (moveSpeed >= 1.0f)
+                        acceleration = false;
+                    break;
+
+                case false:
+                    moveSpeed -= 0.05f;
+                    if (moveSpeed <= 0.0f)
+                        acceleration = true;
+                    break;
+               
+
+            }
+               
+
+            
+
+        if (moveSpeed > 1)
+            moveSpeed = 1;
+        if (moveSpeed < 0)
+            moveSpeed = 0;
+
+        anim.SetFloat("Speed", moveSpeed);
+                
         
         
 
@@ -126,51 +217,6 @@ public class CharController : MonoBehaviour {
             anim.SetBool("Movement", true);
         else
             anim.SetBool("Movement", false);
-
-       
-
-      
-
-        switch (direction)
-        {
-            case 1: anim.SetBool("FaceForward", true);
-                anim.SetBool("FaceRight", false);
-                anim.SetBool("FaceBackward", false);
-                anim.SetBool("FaceLeft", false);
-                if (side > 0 && forward == 0) direction = 2;
-                else if (side < 0 && forward == 0) direction = 4;
-                else if(side == 0 && forward < 0) direction = 3;
-                break;
-
-            case 2:
-                anim.SetBool("FaceForward", false);
-                anim.SetBool("FaceRight", true);
-                anim.SetBool("FaceBackward", false);  
-                anim.SetBool("FaceLeft", false);
-                if (side == 0 && forward > 0) direction = 1;
-                else if (side < 0 && forward == 0) direction = 4;
-                else if (side == 0 && forward < 0) direction = 3;
-                break;
-            case 3:
-                anim.SetBool("FaceForward", false);
-                anim.SetBool("FaceRight", false);
-                anim.SetBool("FaceBackward", true);
-                anim.SetBool("FaceLeft", false);
-                if (side == 0 && forward > 0) direction = 1;
-                else if (side < 0 && forward == 0) direction = 4;
-                else if (side > 0 && forward == 0) direction = 2;
-                break;
-            case 4:
-                anim.SetBool("FaceForward", false);
-                anim.SetBool("FaceRight", false);
-                anim.SetBool("FaceBackward", false);
-                anim.SetBool("FaceLeft", true);
-                if (side == 0 && forward > 0) direction = 1;
-                else if (side == 0 && forward < 0) direction = 3;
-                else if (side > 0 && forward == 0) direction = 2;
-                break;
-         
-        }
 
 
         Jump();
@@ -186,71 +232,46 @@ public class CharController : MonoBehaviour {
     }
     void ifArmed()
     {
-        
-         arrow_rot = arrow.transform.eulerAngles.z;
 
 
-       // ifAttack = anim.GetBool("Attack");
 
         if (Input.GetKey(KeyCode.Space))
-
-        anim.SetTrigger("Arm/Disarm");
-        anim.SetBool("Attack", Input.GetKey(KeyCode.Mouse0));
-        if (Input.GetKey(KeyCode.Mouse0))
-            anim.SetTrigger("Attack 0");
-
-        if (anim.GetBool("Attack 0"))
         {
-            if (arrow_rot > 30 && arrow_rot < 90)
-                anim.SetTrigger("Attack_Top_Right 0");
-            if (arrow_rot > 330 || arrow_rot < 30)
-                anim.SetTrigger("Attack_Right 0");
-            if (arrow_rot > 150 && arrow_rot < 210)
-                anim.SetTrigger("Attack_Left 0");
-            if (arrow_rot > 270 && arrow_rot < 330)
-                anim.SetTrigger("Attack_Down_Right");
-            if (arrow_rot > 90 && arrow_rot < 150)
-                anim.SetTrigger("Attack_Top");
+            if(anim.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
 
+                anim.SetBool("Armed",true);
 
+            else if (anim.GetCurrentAnimatorStateInfo(0).IsName("Idle_Armed"))
+
+                anim.SetBool("Armed", false);
+
+            anim.SetTrigger("Arm/Disarm");
+        }
+        
+        if (Input.GetKey(KeyCode.Mouse0))
+        {
+            anim.SetTrigger("Attack 0");
+           // StartCoroutine(circle.returnToCenter());
+           
         }
 
-        //Rotating 180 arrow after attack
-       
-/*
-        if (ifAttack && !prev_ifAttack)
-            arrow.transform.Rotate(0,0,180);
-        prev_ifAttack = ifAttack;
         
-         */
             
     }
-    void Equip() {
+    
 
-        weapon.transform.parent = HookRightHand.transform;
-        
-     
-        arrow.SetActive(true);
-       
+   
 
-    }
-    void Unequip()
-    {
+    IEnumerator speedUp( ) {
 
-        weapon.transform.parent = HookBack.transform;
-        arrow.SetActive(false);
-
-
+        for (; moveSpeed < 1; moveSpeed += 0.1f)
+            yield return null;
 
     }
-    void ResetTrig() {
-        anim.ResetTrigger("Arm/Disarm");
-        anim.ResetTrigger("Attack_Right 0");
-        anim.ResetTrigger("Attack_Left 0");
-        anim.ResetTrigger("Attack_Top_Right 0");
-        anim.ResetTrigger("Attack_Top");
-        anim.ResetTrigger("Attack_Down_Right");
-        anim.ResetTrigger("Attack 0");
+    IEnumerator slowDown() {
+
+        for (; moveSpeed > 0; moveSpeed -= 0.1f)
+            yield return null;
 
     }
 }

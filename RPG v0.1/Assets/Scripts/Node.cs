@@ -11,6 +11,7 @@ public class Node :IHeapItem<Node> {
 
     public int gCost;
     public int hCost;
+    public int heightPenalty;
     public Node parent;
 
     int heapIndex;
@@ -27,7 +28,7 @@ public class Node :IHeapItem<Node> {
     {
         get
         {
-            return gCost + hCost;
+            return gCost + hCost + heightPenalty;
         }
     }
      public int HeapIndex

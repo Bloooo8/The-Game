@@ -16,10 +16,10 @@ public class AStar : MonoBehaviour
         requestManager = GetComponent<PathRequestManager>();
     }
 
-    public void Update()
+   /* public void Update()
     {
         grid.CheckWalkability();
-    }
+    }*/
 
 
 
@@ -64,11 +64,12 @@ public class AStar : MonoBehaviour
                         continue;
                     }
 
-                    int newCostToNeighbour = node.gCost + GetDistance(node, neighbour);
-                    if (newCostToNeighbour < neighbour.gCost || !openSet.Contains(neighbour))
+                    int newCostToNeighbour = node.gCost + GetDistance(node, neighbour) + neighbour.heightPenalty;
+                    if (newCostToNeighbour <= neighbour.gCost || !openSet.Contains(neighbour))
                     {
                         neighbour.gCost = newCostToNeighbour;
                         neighbour.hCost = GetDistance(neighbour, targetNode);
+                        neighbour.heightPenalty =Mathf.Abs(Mathf.RoundToInt(neighbour.worldPosition.y - node.worldPosition.y)*50) ;
                         neighbour.parent = node;
 
                         if (!openSet.Contains(neighbour))

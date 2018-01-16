@@ -6,6 +6,9 @@ TagManager:
   tags:
   - ground
   - enviroment
+  - character
+  - player
+  - weapon
   layers:
   - Default
   - TransparentFX

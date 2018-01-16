@@ -61218,7 +61218,7 @@ AnimationClip:
   m_GenerateMotionCurves: 0
   m_IsEmpty: 0
   m_Events:
-  - time: 1
+  - time: 2
     functionName: ResetTrig
     data: 
     objectReferenceParameter: {fileID: 0}

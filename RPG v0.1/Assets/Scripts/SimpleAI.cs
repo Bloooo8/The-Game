@@ -4,48 +4,88 @@ using UnityEngine;
 
 public class SimpleAI : MonoBehaviour {
 
-    int targetIndex;
 
+     
 
-    string state = "patrol";
-    
-    float rotSpeed = 1f;
-
-
-    float accuracyWP = 5.0f;
-
-    Vector3 currentTarget;
-    Vector3 yOffset = new Vector3(0, 1, 0);
-    RaycastHit frontInfo, rightInfo, leftInfo;
-
-    Vector3 forward, right, left; 
-
-    Animator anim;
+        
+    public string state = "patrol";
+    public int fightDir = 1;
 
     public Transform target;
-    public Transform[] waypoints;
+    public  Transform[] waypoints;
+   
+
     public Transform player;
-    public LayerMask ignoreHitMask;
+    
     public int currentWP;
 
-    public float frontObstacle, rightObstacle, leftObstacle;
+    public float viewAngle;
 
-    public bool hitFront, hitFrontRight, hitFrontLeft;
-
-
-    public float farDistance = 10.0f;
-
+    float attack_vertical=0, attack_horizontal=0;
    
+    Animator anim;
+
+   public  MovingAI moveAI;
+
+    RPGStats stats;
+
+    WeaponStats weapon;
+
+    EnemyGroup group;
+
+    Animator playerAnimator;
+
+    AnimatorStateInfo playerState,animState;
+
+    Task btTreeStrike,btTreePosition;
+
+    DTNode dialogTree;
+
+    DialogueManager manager;
+
+    DialoguesScript dialogue;
+
     
-   
+
+
+
+
     // Use this for initialization
     void Start()
     {
         anim = GetComponent<Animator>();
+
+        moveAI = GetComponent<MovingAI>();
+
+        stats = GetComponent<RPGStats>();
+
+        weapon = GetComponentInChildren<WeaponStats>();
+
+        playerAnimator = player.GetComponent<Animator>();
+        
+        group = GetComponentInParent<EnemyGroup>();
+
+        dialogue = GetComponent<DialoguesScript>();
+
+        btTreeStrike =
+                  new Sequence(new Selector(new CloseEnough(this, player), new MoveCloser(this, anim))
+                  , new Sequence(new Selector(new CanAttack(this, player), new CircleAround(this, anim, player)),
+                  new Attack(this, anim)));
        
+        btTreePosition = new Sequence(new Selector(new AwayEnough(this, player),
+                   new Selector(new MoveAway(this, anim, player))), new CircleAround(this, anim, player),btTreeStrike);
+
+
+        manager = GameObject.Find("UI").GetComponent<DialogueManager>();
+
+        dialogTree = new DecideDialogOption(stats.courage, new ShowDialogueOption(manager.option1),
+            new ShowDialogueOption(manager.option2),
+            new ShowDialogueOption(manager.option3));
+
 
 
     }
+
 
    
    
@@ -53,123 +93,186 @@ public class SimpleAI : MonoBehaviour {
     void Update()
     {
 
-        Vector3 direction = target.position - transform.position;
-
-        forward= transform.TransformDirection(Vector3.forward) * farDistance;
-        right = transform.TransformDirection(Vector3.Normalize(new Vector3(1, 0, 2))) * farDistance;
-        left = transform.TransformDirection(Vector3.Normalize(new Vector3(-1, 0, 2))) * farDistance;
-
-
-
-
-       
-
-
-        Debug.DrawRay(transform.position + new Vector3(0, 1, 0), forward, Color.green);
+        Vector3 direction = player.position - transform.position;
         
-        Debug.DrawRay(transform.position + new Vector3(0, 1, 0), right, Color.blue);
-        Debug.DrawRay(transform.position + new Vector3(0, 1, 0), left, Color.red);
 
         direction.y = 0;
 
+        viewAngle = Vector3.Angle(direction, transform.forward);
+
+        playerState =playerAnimator.GetCurrentAnimatorStateInfo(0);
+
+        animState = anim.GetCurrentAnimatorStateInfo(0);
 
 
-        float angle = Vector3.Angle(direction, transform.forward);
+        anim.SetFloat("Idle", attack_horizontal);
+        anim.SetFloat("Attack_Vertical", attack_vertical);
+
+
+
+
+
+
 
         switch (state)
         {
             case "patrol":
-                if (waypoints.Length > 0)
+
+                if (moveAI.hitFront || moveAI.hitFrontLeft || moveAI.hitFrontRight)
+                    moveAI.avoidObstacles();
+                else
+
+                moveAI.patrol(waypoints,ref currentWP, ref target);
+                                                        
+
+                   
+
+                   
+                   
+
+
+
+
+                
+
+                if (Vector3.Distance(player.position, transform.position) < 20 && viewAngle < 60 && viewAngle>-60 
+                    && stats.courage<0)
+
+                
                 {
-                    target = waypoints[currentWP];
-                    anim.SetBool("Walk", true);
-                    if (Vector3.Distance(target.position, transform.position) < accuracyWP)
-                    {
-                        currentWP++;
-                        if (currentWP+1 > waypoints.Length)
-                            currentWP = 0;
-
-                    }
+                    moveAI.pursuit(player);
                     
-
-                  
-
-                    hitFront = Physics.Raycast(transform.position + yOffset, forward, out frontInfo, forward.magnitude) && frontInfo.collider.tag == "enviroment";
-                    //Box version
-                    /* Physics.BoxCast(transform.position + yOffset,
-                        new Vector3(0.5f,0.5f,forward.magnitude/2),
-                        forward,out frontInfo, transform.rotation,forward.magnitude) && frontInfo.collider.tag == "enviroment";*/
-                    hitFrontRight = Physics.Raycast(transform.position + yOffset, right, out rightInfo, right.magnitude) && rightInfo.collider.tag == "enviroment";
-                    hitFrontLeft = Physics.Raycast(transform.position + yOffset, left, out leftInfo, left.magnitude) && leftInfo.collider.tag == "enviroment";
-
-                    if (hitFront || hitFrontLeft || hitFrontRight)
-                        avoidObstacles();
-                    else
-                    {
-                        direction = target.position - transform.position;
-                        transform.rotation = Quaternion.Slerp(transform.rotation,
-                            Quaternion.LookRotation(direction), rotSpeed * Time.deltaTime);
-                    }
-
-
-
+                    state = "pursuit";
 
                 }
 
-                if (Vector3.Distance(player.position, transform.position) < 20 && angle < 60)
+                if (Vector3.Distance(transform.position, player.position) < 2 && stats.courage > 0)
+                {
+                    manager.ShowWindow();
+                    manager.AssignDialogue(dialogue.getNameOfDialog());
+                    state = "talk";
 
-                    state = "pursuit";
-
-
-
+                }
 
 
                 break;
+
             case "pursuit":
 
-                anim.SetBool("Chase", true);
-                anim.SetBool("Attack", false);
+               
 
-                if (hitFront || hitFrontLeft || hitFrontRight)
-                    avoidObstacles();
+                
+
+                if (moveAI.hitFront || moveAI.hitFrontLeft || moveAI.hitFrontRight)
+                    moveAI.avoidObstacles();
                 else
                 {
-                    direction = player.position - transform.position;
-                    transform.rotation = Quaternion.Slerp(transform.rotation,
-                        Quaternion.LookRotation(direction), rotSpeed * Time.deltaTime);
+                    moveAI.avoidCollision();
+                    moveAI.followTarget( player.transform);
+                }
+                    
+
+            
+                if (Vector3.Distance(transform.position, player.position) < 5 && stats.courage<0)
+                
+                {
+                    anim.SetFloat("Speed", 0.0f);
+                    anim.SetBool("Movement", false);
+                    if (!anim.GetBool("Armed"))
+                    {
+                        anim.SetTrigger("Arm/Disarm");
+                        anim.SetBool("Armed", true);
+                    }
+
+
+                    state = "attack";
                 }
 
-              /*  direction = player.position - transform.position;
-                transform.rotation = Quaternion.Slerp(transform.rotation,
-                    Quaternion.LookRotation(direction), rotSpeed * Time.deltaTime);*/
-
-
-                if (Vector3.Distance(transform.position, player.position) < 2)
-                    state = "attack";
-
-
-                if (Vector3.Distance(player.position, transform.position) > 20)
+                if (Vector3.Distance(transform.position, player.position) < 2 && stats.courage > 0)
                 {
-                    anim.SetBool("Attack", false);
-                    anim.SetBool("Chase", false);
+                    manager.ShowWindow();
+                    manager.AssignDialogue(dialogue.getNameOfDialog());
+                    state = "talk";
+
+                }
+
+
+                    if (Vector3.Distance(player.position, transform.position) > 20)
+                
+                {
+                    if (anim.GetBool("Armed"))
+                    {
+                        anim.SetTrigger("Arm/Disarm");
+                        anim.SetBool("Armed", false);
+                    }
+
+                    anim.SetFloat("Speed", 0.0f);
+                    
                     target = waypoints[currentWP];
-                  
+
                     state = "patrol";
                 }
                 break;
 
             case "attack":
-                transform.rotation = Quaternion.Slerp(transform.rotation,
-                   Quaternion.LookRotation(player.transform.position), rotSpeed * Time.deltaTime);
-                anim.SetBool("Attack", true);
-                anim.SetBool("Chase", false);
-                anim.SetBool("Walk", false);
 
-                if (Vector3.Distance(transform.position, player.position) > 2)
+
+                
+
+               
+
+
+                btTreeStrike.Run();
+
+
+                if (Vector3.Distance(transform.position, player.position) > 8)
+               
                 {
+
+                    anim.SetBool("Movement", true);
+                    anim.SetFloat("Speed", 1.0f);
+
 
                     state = "pursuit";
                 }
+                break;
+
+            case "talk":
+
+                moveAI.followTarget(player.transform);
+                anim.SetBool("Movement", false);
+
+                
+                dialogTree = new DecideDialogOption(stats.courage, new ShowDialogueOption(manager.option1),
+           new ShowDialogueOption(manager.option2),
+           new ShowDialogueOption(manager.option3));
+
+
+
+                dialogTree.Decide();
+
+
+                if (Vector3.Distance(transform.position, player.position) > 5.0f)
+                {
+                    target = waypoints[currentWP];
+
+                    state = "patrol";
+                }
+
+                if (stats.courage < 0)
+                {
+                    if (!anim.GetBool("Armed"))
+                    {
+                        anim.SetTrigger("Arm/Disarm");
+                        anim.SetBool("Armed", true);
+                    }
+
+                    state = "attack";
+
+                }
+
+
+
                 break;
         }
 
@@ -177,80 +280,142 @@ public class SimpleAI : MonoBehaviour {
 
     }
 
-    void avoidObstacles() {
 
+    public void FightTree()
+    {
 
+        if (stats.health > stats.maxHealth / 10)
 
-        if (hitFront)
-            frontObstacle = 100 - (frontInfo.distance / forward.magnitude) * 100;
-        else
-            frontObstacle = 0;
-
-        if (hitFrontRight)
-            rightObstacle = 100 - (rightInfo.distance / right.magnitude) * 100;
-        else
-            rightObstacle = 0;
-
-        if (hitFrontLeft)
-            leftObstacle = 100 - (leftInfo.distance / left.magnitude) * 100;
-        else
-            leftObstacle = 0;
-
-
-        if (frontObstacle > leftObstacle && frontObstacle > rightObstacle)
-            transform.Rotate(Vector3.up,1);
-
-        if (leftObstacle > rightObstacle && leftObstacle > frontObstacle)
-            transform.Rotate(Vector3.up, 1);
             
-        if(rightObstacle > leftObstacle && rightObstacle > frontObstacle)
-            transform.Rotate(Vector3.up, -1);
+            if (!(playerState.IsName("Attack_Left") || playerState.IsName("Attack_Right")))
 
-       
+                if (Vector3.Distance(transform.position, player.position) < weapon.range*2.5)
+                {
+                    if (viewAngle > -15 && viewAngle < 15)
+                        if (!(animState.IsName("Attack_Left") ||
+                            animState.IsName("Attack_Right")))
+                        {
+
+                            if (playerState.IsName("Block"))
+                            {
+                                anim.SetBool("Movement", false);
+
+                                StartCoroutine(smoothValueAnimator("Idle", playerAnimator.GetFloat("Idle"), 0.05f));
+                                StartCoroutine(smoothValueAnimator("Attack_Vertical", Random.Range(-0.8f, 0.8f), 0.05f));
+
+                               
+
+
+
+                                
+
+                                anim.SetTrigger("Attack 0");
+
+
+                            }
+
+                            else
+                            {
+                                anim.SetBool("Movement", false);
+
+
+                                 StartCoroutine(smoothValueAnimator("Idle", Random.Range(-0.8f, 0.8f), 0.05f));
+                                 StartCoroutine(smoothValueAnimator("Attack_Vertical", Random.Range(-0.8f, 0.8f), 0.05f));
+                                
+
+                                anim.SetTrigger("Attack 0");
+                            }
 
 
 
 
 
+                        }
+                        else
+                            return;
+                    else
+                        moveAI.followTarget(player);
 
-        /*  if (hitFront)
-              if (hitFrontLeft)
-                  if (hitFrontRight)
 
-                  transform.rotation = Quaternion.Slerp(transform.rotation,
-                   Quaternion.AngleAxis(180, Vector3.up), rotSpeed * Time.deltaTime);
-                  else
+                }
 
-               transform.rotation = Quaternion.Slerp(transform.rotation,
-              Quaternion.AngleAxis(180, Vector3.up), rotSpeed * Time.deltaTime);
-              else
-              if (hitFrontRight)
+                else
+                {
+                    moveAI.followTarget(player);
+                    anim.SetBool("Movement", true);
 
-              transform.rotation = Quaternion.Slerp(transform.rotation,
-              Quaternion.AngleAxis(-180, Vector3.up), rotSpeed * Time.deltaTime);
-              else
 
-           transform.rotation = Quaternion.Slerp(transform.rotation,
-              Quaternion.AngleAxis(180, Vector3.up), rotSpeed * Time.deltaTime);
+                    
+                    StartCoroutine(smoothValueAnimator("Forward", 1f,0.3f));
 
-          else if (hitFrontLeft)
-              if (hitFrontRight)
-                  return;
-              else
+                }
 
-           transform.rotation = Quaternion.Slerp(transform.rotation,
-              Quaternion.AngleAxis(180, Vector3.up), rotSpeed * Time.deltaTime);
-          else if (hitFrontRight)
-              if (hitFrontLeft)
-                  return;
-              else
+            else
+            {
+                moveAI.followTarget(player);
+                anim.SetBool("Movement", true);
+                StartCoroutine(smoothValueAnimator("Forward", -1f,0.3f));
 
-          transform.rotation = Quaternion.Slerp(transform.rotation,
-             Quaternion.AngleAxis(-180, Vector3.up), rotSpeed * Time.deltaTime);
+            }
 
-      */
+        else
+        {
+            moveAI.runFromTarget(player);
+            StartCoroutine(smoothValueAnimator("Forward", 1f,0.3f));
+        }
+            
+    }
+
+    public IEnumerator smoothValue(float value1,float value1Target, float value2, float value2Target)
+    {
+        if (value1 < value1Target)
+            for (; value1 < value1Target; value1 += 0.05f)
+                yield return null;
+
+        if (value1 > value1Target)
+            for (; value1 > value1Target; value1 -= 0.05f)
+                yield return null;
+
+        if (value2 < value2Target)
+            for (; value2 < value2Target; value2 += 0.05f)
+                yield return null;
+
+        if (value2 > value2Target)
+            for (; value2 > value2Target; value2 -= 0.05f)
+                yield return null;
+
 
 
     }
+
+    public IEnumerator smoothValueAnimator(string name,float targetValue, float step)
+    {
+        float value = anim.GetFloat(name);
+        if (value< targetValue)
+            for (; value < targetValue; value += step)
+            {
+                anim.SetFloat(name, value);
+                yield return null;
+            }
+
+        
+               
+
+        if (value > targetValue)
+            for (; value > targetValue; value -= step)
+            {
+                anim.SetFloat(name, value);
+                yield return null;
+            }
+    }
+
+   public Animator GetAnimator()
+    {
+        return anim;
+    }
+
+    
    
+
+
 }
