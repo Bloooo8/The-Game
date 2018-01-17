@@ -6,29 +6,29 @@ public class Node :IHeapItem<Node> {
 
     public bool walkable;
     public Vector3 worldPosition;
-    public int gridX;
-    public int gridY;
+    public int gridXIndex;
+    public int gridYIndex;
 
     public int gCost;
-    public int hCost;
+    public int heuristicCost;
     public int heightPenalty;
     public Node parent;
 
     int heapIndex;
 
-    public Node(bool _walkable, Vector3 _worldPos, int _gridX, int _gridY)
+    public Node(bool walkable, Vector3 worldPos, int gridX, int gridY)
     {
-        walkable = _walkable;
-        worldPosition = _worldPos;
-        gridX = _gridX;
-        gridY = _gridY;
+        this.walkable = walkable;
+        this.worldPosition = worldPos;
+        gridXIndex = gridX;
+        gridYIndex = gridY;
     }
 
-    public int fCost
+    public int fullCost
     {
         get
         {
-            return gCost + hCost + heightPenalty;
+            return gCost + heuristicCost + heightPenalty;
         }
     }
      public int HeapIndex
@@ -39,10 +39,10 @@ public class Node :IHeapItem<Node> {
 
     public int CompareTo(Node nodeToCompare)
     {
-        int compare = fCost.CompareTo(nodeToCompare.fCost);
+        int compare = fullCost.CompareTo(nodeToCompare.fullCost);
         if (compare == 0)
         {
-            compare = hCost.CompareTo(nodeToCompare.hCost);
+            compare = heuristicCost.CompareTo(nodeToCompare.heuristicCost);
         }
         return -compare;
     }

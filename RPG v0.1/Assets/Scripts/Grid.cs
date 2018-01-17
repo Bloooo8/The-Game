@@ -7,19 +7,19 @@ public class Grid : MonoBehaviour
     public Transform player;
     public LayerMask unwalkableMask;
     public Vector2 gridWorldSize;
-    public float nodeRadius;
+    public float nodeR;
     public bool onlyPath;
     public float minHeight=1;
     Node[,] grid;
 
-    float nodeDiameter;
-    int gridSizeY, gridSizeX;
+    float nodeD;
+    int gridY, gridX;
 
     private void Awake()
     {
-        nodeDiameter = nodeRadius * 2;
-        gridSizeX = Mathf.RoundToInt(gridWorldSize.x / nodeDiameter);
-        gridSizeY = Mathf.RoundToInt(gridWorldSize.y / nodeDiameter);
+        nodeD = nodeR * 2;
+        gridX = Mathf.RoundToInt(gridWorldSize.x / nodeD);
+        gridY = Mathf.RoundToInt(gridWorldSize.y / nodeD);
         CreateGrid();
         onlyPath = true;
 
@@ -29,18 +29,18 @@ public class Grid : MonoBehaviour
 
     public int MaxSize
     {
-        get{ return gridSizeX*gridSizeY; }
+        get{ return gridX*gridY; }
     }
 
 
     public void CheckWalkability()
     {
-        for (int x = 0; x < gridSizeX; x++)
+        for (int x = 0; x < gridX; x++)
         {
-            for (int y = 0; y < gridSizeY; y++)
+            for (int y = 0; y < gridY; y++)
             {
                 
-                bool _walkable = !(Physics.CheckCapsule(grid[x, y].worldPosition, new Vector3(grid[x, y].worldPosition.x, minHeight, grid[x, y].worldPosition.z), nodeRadius, unwalkableMask));
+                bool _walkable = !(Physics.CheckCapsule(grid[x, y].worldPosition, new Vector3(grid[x, y].worldPosition.x, minHeight, grid[x, y].worldPosition.z), nodeR, unwalkableMask));
                 grid[x, y].walkable = _walkable;
             }
         }
@@ -48,15 +48,15 @@ public class Grid : MonoBehaviour
     }
     void CreateGrid()
     {
-        grid = new Node[gridSizeX, gridSizeY];
+        grid = new Node[gridX, gridY];
         Vector3 worldOrigin = transform.position - Vector3.right * gridWorldSize.x / 2 - Vector3.forward * gridWorldSize.y / 2;
-        for (int x = 0; x < gridSizeX; x++)
+        for (int x = 0; x < gridX; x++)
         {
-            for (int y = 0; y < gridSizeY; y++)
+            for (int y = 0; y < gridY; y++)
             {
-                Vector3 worldPoint = worldOrigin + Vector3.right * (x * nodeDiameter + nodeRadius) + Vector3.forward * (y * nodeDiameter + nodeRadius);
+                Vector3 worldPoint = worldOrigin + Vector3.right * (x * nodeD + nodeR) + Vector3.forward * (y * nodeD + nodeR);
                 worldPoint.y =  Terrain.activeTerrain.SampleHeight(worldPoint);
-                bool walkable = !(Physics.CheckCapsule(worldPoint,new Vector3(worldPoint.x,minHeight,worldPoint.z) ,nodeRadius,unwalkableMask));
+                bool walkable = !(Physics.CheckCapsule(worldPoint,new Vector3(worldPoint.x,minHeight,worldPoint.z) ,nodeR,unwalkableMask));
                 grid[x, y] = new Node(walkable, worldPoint,x,y);
             }
         }
@@ -75,10 +75,10 @@ public class Grid : MonoBehaviour
                 if (x == 0 && y == 0)
                     continue;
 
-                int checkX = node.gridX + x;
-                int checkY = node.gridY + y;
+                int checkX = node.gridXIndex + x;
+                int checkY = node.gridYIndex + y;
 
-                if (checkX >= 0 && checkX < gridSizeX && checkY >= 0 && checkY < gridSizeY)
+                if (checkX >= 0 && checkX < gridX && checkY >= 0 && checkY < gridY)
                 {
                     neighbours.Add(grid[checkX, checkY]);
                 }
@@ -95,8 +95,8 @@ public class Grid : MonoBehaviour
         percentX = Mathf.Clamp01(percentX);
         percentY = Mathf.Clamp01(percentY);
 
-        int x =Mathf.RoundToInt((gridSizeX - 1) * percentX);
-        int y = Mathf.RoundToInt((gridSizeY - 1) * percentY);
+        int x =Mathf.RoundToInt((gridX - 1) * percentX);
+        int y = Mathf.RoundToInt((gridY - 1) * percentY);
         return grid[x, y];
 
     }
@@ -114,7 +114,7 @@ public class Grid : MonoBehaviour
                    
                             
                             Gizmos.color = Color.black;
-                    Gizmos.DrawCube(n.worldPosition, Vector3.one * (nodeDiameter - .1f));
+                    Gizmos.DrawCube(n.worldPosition, Vector3.one * (nodeD - .1f));
                 }
             }
 
@@ -128,7 +128,7 @@ public class Grid : MonoBehaviour
                 if (path != null)
                     if (path.Contains(n))
                         Gizmos.color = Color.black;
-                Gizmos.DrawCube(n.worldPosition, Vector3.one * (nodeDiameter - .1f));
+                Gizmos.DrawCube(n.worldPosition, Vector3.one * (nodeD - .1f));
             }
         }
     }

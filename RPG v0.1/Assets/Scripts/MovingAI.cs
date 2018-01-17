@@ -94,7 +94,7 @@ public class MovingAI : MonoBehaviour
 
         ai = GetComponent<SimpleAI>();
 
-        PathRequestManager.RequestPath(transform.position, target.position, OnPathFound);
+        PathManager.RequestPath(transform.position, target.position, OnPathFound);
 
         if (group == null)
             onPosition = true;
@@ -450,7 +450,7 @@ public class MovingAI : MonoBehaviour
                 if (currentWP + 1 > waypoints.Length)
                     currentWP = 0;
                 target = waypoints[currentWP];
-                PathRequestManager.RequestPath(transform.position, target.position, OnPathFound);
+                PathManager.RequestPath(transform.position, target.position, OnPathFound);
 
 
 

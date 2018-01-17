@@ -27,7 +27,7 @@ public class BasicAI : MonoBehaviour {
     // Use this for initialization
     void Start () {
         anim=GetComponent<Animator>();
-        PathRequestManager.RequestPath(transform.position, target.position, OnPathFound);
+        PathManager.RequestPath(transform.position, target.position, OnPathFound);
 
 
     }
@@ -90,7 +90,7 @@ public class BasicAI : MonoBehaviour {
 
                         target = waypoints[currentWP];
 
-                         PathRequestManager.RequestPath(transform.position, target.position, OnPathFound);
+                         PathManager.RequestPath(transform.position, target.position, OnPathFound);
                     }
                   /*  if (Physics.Raycast(transform.position, Vector3.forward, out hitInfo, 5.0f))
                         if (hitInfo.collider.tag == "enviroment")
@@ -121,7 +121,7 @@ public class BasicAI : MonoBehaviour {
                 anim.SetBool("Attack", false);
 
 
-                PathRequestManager.RequestPath(transform.position, player.position, OnPathFound);
+                PathManager.RequestPath(transform.position, player.position, OnPathFound);
                direction = currentTarget - transform.position;
               
                 transform.rotation = Quaternion.Slerp(transform.rotation,
@@ -137,7 +137,7 @@ public class BasicAI : MonoBehaviour {
                     anim.SetBool("Attack", false);
                     anim.SetBool("Chase", false);
                     target = waypoints[currentWP];
-                    PathRequestManager.RequestPath(transform.position, target.position, OnPathFound);
+                    PathManager.RequestPath(transform.position, target.position, OnPathFound);
                     state = "patrol";
                 }
                 break;

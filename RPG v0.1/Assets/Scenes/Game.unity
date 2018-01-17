@@ -4166,7 +4166,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 256
   gridWorldSize: {x: 500, y: 500}
-  nodeRadius: 0.8
+  nodeR: 0.5
   onlyPath: 0
   minHeight: 2
 --- !u!114 &985463341

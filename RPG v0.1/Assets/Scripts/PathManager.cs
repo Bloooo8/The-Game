@@ -3,13 +3,13 @@ using System.Collections;
 using System.Collections.Generic;
 using System;
 
-public class PathRequestManager : MonoBehaviour
+public class PathManager : MonoBehaviour
 {
 
     Queue<PathRequest> pathRequestQueue = new Queue<PathRequest>();
     PathRequest currentPathRequest;
 
-    static PathRequestManager instance;
+    static PathManager instance;
     AStar pathfinding;
 
     bool isProcessingPath;
@@ -33,11 +33,11 @@ public class PathRequestManager : MonoBehaviour
         {
             currentPathRequest = pathRequestQueue.Dequeue();
             isProcessingPath = true;
-            pathfinding.StartFindPath(currentPathRequest.pathStart, currentPathRequest.pathEnd);
+            pathfinding.StartLookPath(currentPathRequest.pathStart, currentPathRequest.pathEnd);
         }
     }
 
-    public void FinishedProcessingPath(Vector3[] path, bool success)
+    public void FinishedLooking(Vector3[] path, bool success)
     {
         currentPathRequest.callback(path, success);
         isProcessingPath = false;
@@ -50,11 +50,11 @@ public class PathRequestManager : MonoBehaviour
         public Vector3 pathEnd;
         public Action<Vector3[], bool> callback;
 
-        public PathRequest(Vector3 _start, Vector3 _end, Action<Vector3[], bool> _callback) :this()
+        public PathRequest(Vector3 start, Vector3 end, Action<Vector3[], bool> callback) :this()
         {
-            this.pathStart = _start;
-            this.pathEnd = _end;
-            this.callback = _callback;
+            this.pathStart = start;
+            this.pathEnd = end;
+            this.callback = callback;
         }
 
     }
